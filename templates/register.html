@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card glass-panel">
+        <div class="auth-header">
+            <div class="logo">
+                <i class="fa-solid fa-microchip"></i>
+                <h2>Join AI Analyzer</h2>
+            </div>
+            <p>Start optimizing your AI subscriptions today.</p>
+        </div>
+        
+        <form action="{{ url_for('register') }}" method="POST" class="auth-form" id="registerForm">
+            <div class="input-group">
+                <label for="name"><i class="fa-solid fa-user"></i> Full Name</label>
+                <input type="text" id="name" name="name" required placeholder="John Doe" autocomplete="name">
+            </div>
+            <div class="input-group">
+                <label for="email"><i class="fa-regular fa-envelope"></i> Email</label>
+                <input type="email" id="email" name="email" required placeholder="john@example.com" autocomplete="email">
+            </div>
+            <div class="input-group">
+                <label for="password"><i class="fa-solid fa-lock"></i> Password</label>
+                <input type="password" id="password" name="password" required placeholder="Minimum 8 characters" minlength="8">
+            </div>
+            <div class="input-group">
+                <label for="confirm_password"><i class="fa-solid fa-lock"></i> Confirm Password</label>
+                <input type="password" id="confirm_password" required placeholder="Repeat password" minlength="8">
+                <small id="passwordError" class="error-text" style="display:none; color:#ff4b4b; margin-top:5px;">Passwords do not match.</small>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block">Sign Up <i class="fa-solid fa-user-plus"></i></button>
+        </form>
+        
+        <div class="auth-footer">
+            <p>Already have an account? <a href="{{ url_for('login') }}">Sign in</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+        let pwd = document.getElementById('password').value;
+        let cpwd = document.getElementById('confirm_password').value;
+        if(pwd !== cpwd) {
+            e.preventDefault();
+            document.getElementById('passwordError').style.display = 'block';
+        } else {
+            document.getElementById('passwordError').style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

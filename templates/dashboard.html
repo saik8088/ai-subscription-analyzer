@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<nav class="navbar glass-panel">
+    <div class="nav-brand">
+        <i class="fa-solid fa-microchip"></i>
+        <span>AI Analyzer</span>
+    </div>
+    <div class="nav-profile">
+        <span><i class="fa-solid fa-user-circle"></i> {{ user_name }}</span>
+        <a href="{{ url_for('logout') }}" class="btn-outline btn-sm"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+    </div>
+</nav>
+
+<div class="dashboard-layout">
+    <!-- Sidebar / Input Section -->
+    <aside class="sidebar glass-panel">
+        <h3><i class="fa-solid fa-plus-circle"></i> Add AI Tool</h3>
+        <form id="addToolForm" class="tool-form">
+            <div class="input-group">
+                <label>Tool Name</label>
+                <input type="text" id="toolName" required placeholder="e.g. ChatGPT Plus">
+            </div>
+            <div class="input-group">
+                <label>Monthly Cost (₹)</label>
+                <input type="number" id="monthlyCost" required placeholder="e.g. 1650" min="0">
+            </div>
+            <div class="input-group">
+                <label>Yearly Cost (₹)</label>
+                <input type="number" id="yearlyCost" required placeholder="e.g. 19800" min="0">
+            </div>
+            <div class="input-group">
+                <label>Key Features</label>
+                <textarea id="features" required placeholder="e.g. GPT-4, DALL-E 3, Advanced Data Analysis" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-save"></i> Save Subscription</button>
+        </form>
+    </aside>
+
+    <!-- Main Content Area -->
+    <section class="main-content">
+        <!-- Settings Bar -->
+        <div class="settings-bar glass-panel">
+            <div class="input-group inline-group" style="margin-bottom:0;">
+                <label for="monthlyBudget"><i class="fa-solid fa-piggy-bank"></i> Monthly Budget (₹):</label>
+                <input type="number" id="monthlyBudget" placeholder="Enter your total monthly budget..." min="0">
+                <button id="saveBudgetBtn" class="btn btn-secondary btn-sm">Save Budget</button>
+            </div>
+        </div>
+
+        <div class="stats-overview" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="stat-card glass-panel">
+                <h4><i class="fa-solid fa-wallet"></i> Total Monthly</h4>
+                <p class="amount" id="totalMonthly">₹0.00</p>
+            </div>
+            <div class="stat-card glass-panel">
+                <h4><i class="fa-solid fa-calendar"></i> Total Yearly</h4>
+                <p class="amount" id="totalYearly">₹0.00</p>
+            </div>
+            <div class="stat-card glass-panel highlight-cad">
+                <h4><i class="fa-solid fa-arrow-trend-down"></i> Potential Savings</h4>
+                <p class="amount savings-positive" id="totalSavings">₹0.00</p>
+            </div>
+            <div class="stat-card glass-panel" id="budgetCard">
+                <h4><i class="fa-solid fa-scale-balanced"></i> Budget Remaining</h4>
+                <p class="amount" id="budgetRemaining">₹0.00</p>
+            </div>
+        </div>
+
+        <div class="chart-container glass-panel" style="margin-bottom: 20px; padding: 20px; height: 350px;">
+            <canvas id="costChart"></canvas>
+        </div>
+
+        <div class="subscriptions-list" id="subscriptionsList">
+            <!-- Dynamic Tool Cards Rendered by JS -->
+        </div>
+    </section>
+</div>
+
+<!-- Floating AI Chatbot Widget -->
+<div class="chat-widget" id="chatWidget">
+    <div class="chat-header" id="chatHeader">
+        <span><i class="fa-solid fa-robot"></i> AI Analyst</span>
+        <i class="fa-solid fa-chevron-up" id="chatToggleIcon"></i>
+    </div>
+    <div class="chat-body" id="chatBody">
+        <div class="chat-messages" id="chatMessages">
+            <div class="message ai-message">
+                <p>Hello {{ user_name }}! I'm your AI subscription analyst. I can review your tech stack and give you cost-saving advice in INR. How can I help today?</p>
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chatInput" placeholder="Ask about your subscriptions...">
+            <button id="sendChatBtn"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+</div>
+{% endblock %}
