@@ -10,7 +10,12 @@ load_dotenv() # Load variables from .env
 app = Flask(__name__)
 app.secret_key = 'your_super_secret_key_here' # Replace with os.urandom(24) in production
 
-DB_NAME = "database.db"
+# Database configuration for Vercel (read-only filesystem)
+if os.environ.get('VERCEL'):
+    DB_NAME = "/tmp/database.db"
+else:
+    DB_NAME = "database.db"
+
 
 def get_db_connection():
     conn = sqlite3.connect(DB_NAME)
