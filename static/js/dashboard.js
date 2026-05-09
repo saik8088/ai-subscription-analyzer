@@ -165,14 +165,33 @@ function calculateStats(tools) {
     if(totalMonthlyEl) animateValue(totalMonthlyEl, 0, monthly, 1000);
     if(totalYearlyEl) animateValue(totalYearlyEl, 0, yearly, 1000);
     
-    const savingsEl = document.getElementById('totalSavings');
-    if(savingsEl) {
-        animateValue(savingsEl, 0, Math.max(0, potentialSavings), 1000);
-        if (potentialSavings > 0) {
-            savingsEl.className = 'amount savings-positive';
+    const expenseEl = document.getElementById('expenseLevel');
+    if(expenseEl) {
+        let level = 'Low';
+        let className = 'amount savings-positive';
+
+        if (currentBudget > 0) {
+            const ratio = monthly / currentBudget;
+            if (ratio > 0.7) {
+                level = 'High';
+                className = 'amount savings-negative';
+            } else if (ratio > 0.3) {
+                level = 'Medium';
+                className = 'amount';
+                expenseEl.style.color = '#fbbf24'; // Medium yellow color
+            } else {
+                level = 'Low';
+                className = 'amount savings-positive';
+            }
         } else {
-            savingsEl.className = 'amount savings-negative';
+            if (monthly === 0) level = 'None';
+            else level = 'No Budget';
+            className = 'amount';
         }
+
+        expenseEl.textContent = level;
+        expenseEl.className = className;
+        if (level !== 'Medium') expenseEl.style.color = '';
     }
 
     // Budget calculation
