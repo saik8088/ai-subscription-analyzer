@@ -5,16 +5,7 @@
 {% endblock %}
 
 {% block content %}
-<nav class="navbar glass-panel">
-    <div class="nav-brand">
-        <i class="fa-solid fa-microchip"></i>
-        <span>AI Analyzer</span>
-    </div>
-    <div class="nav-profile">
-        <span><i class="fa-solid fa-user-circle"></i> {{ user_name }}</span>
-        <a href="{{ url_for('logout') }}" class="btn-outline btn-sm"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
-    </div>
-</nav>
+{% include 'components/navbar.html' %}
 
 <div class="dashboard-layout">
     <!-- Sidebar / Input Section -->
@@ -81,22 +72,5 @@
     </section>
 </div>
 
-<!-- Floating AI Chatbot Widget -->
-<div class="chat-widget" id="chatWidget">
-    <div class="chat-header" id="chatHeader">
-        <span><i class="fa-solid fa-robot"></i> AI Analyst</span>
-        <i class="fa-solid fa-chevron-up" id="chatToggleIcon"></i>
-    </div>
-    <div class="chat-body" id="chatBody">
-        <div class="chat-messages" id="chatMessages">
-            <div class="message ai-message">
-                <p>Hello {{ user_name }}! I'm your AI subscription analyst. I can review your tech stack and give you cost-saving advice in INR. How can I help today?</p>
-            </div>
-        </div>
-        <div class="chat-input-area">
-            <input type="text" id="chatInput" placeholder="Ask about your subscriptions...">
-            <button id="sendChatBtn"><i class="fa-solid fa-paper-plane"></i></button>
-        </div>
-    </div>
-</div>
+{% include 'components/chatbot.html' %}
 {% endblock %}

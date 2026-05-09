@@ -55,7 +55,7 @@ with app.app_context():
 @app.route('/')
 def index():
     if 'user_id' in session:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('home'))
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -72,11 +72,11 @@ def login():
             session['user_id'] = user['id']
             session['user_name'] = user['name']
             flash('Login successful!', 'success')
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('home'))
         else:
             flash('Invalid email or password.', 'error')
 
-    return render_template('login.html')
+    return render_template('pages/login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -107,7 +107,7 @@ def register():
             flash('An error occurred. Please try again.', 'error')
             conn.close()
 
-    return render_template('register.html')
+    return render_template('pages/register.html')
 
 @app.route('/logout')
 def logout():
@@ -115,12 +115,19 @@ def logout():
     flash('Logged out successfully.', 'info')
     return redirect(url_for('login'))
 
+@app.route('/home')
+def home():
+    if 'user_id' not in session:
+        flash('Please login to access the home page.', 'warning')
+        return redirect(url_for('login'))
+    return render_template('pages/home.html', user_name=session.get('user_name'))
+
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
         flash('Please login to access the dashboard.', 'warning')
         return redirect(url_for('login'))
-    return render_template('dashboard.html', user_name=session.get('user_name'))
+    return render_template('pages/dashboard.html', user_name=session.get('user_name'))
 
 # API Endpoints
 @app.route('/api/tools', methods=['GET', 'POST', 'DELETE'])

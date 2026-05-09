@@ -1,0 +1,14 @@
+<nav class="navbar glass-panel">
+    <div class="nav-brand">
+        <i class="fa-solid fa-microchip"></i>
+        <span>AI Analyzer</span>
+    </div>
+    <div class="nav-links">
+        <a href="{{ url_for('home') }}" class="nav-link"><i class="fa-solid fa-home"></i> Home</a>
+        <a href="{{ url_for('dashboard') }}" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+    </div>
+    <div class="nav-profile">
+        <span><i class="fa-solid fa-user-circle"></i> {{ user_name }}</span>
+        <a href="{{ url_for('logout') }}" class="btn-outline btn-sm"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+    </div>
+</nav>

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% include 'components/navbar.html' %}
+
+<div class="home-layout">
+    <div class="particles" id="particles-js"></div>
+    <div class="hero-section glass-panel">
+        <h1 class="hero-title">AI SUBSCRIPTION & COST ANALYZER</h1>
+        <p class="hero-subtitle">Track, manage, and optimize your AI tool expenses intelligently.</p>
+        <div class="hero-actions">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-large glowing-btn">
+                Add Subscription
+            </a>
+        </div>
+    </div>
+</div>
+
+{% include 'components/chatbot.html' %}
+{% endblock %}
+
+{% block extra_head %}
+<!-- Particles JS for background effect -->
+<script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    particlesJS("particles-js", {
+        "particles": {
+            "number": { "value": 80, "density": { "enable": true, "value_area": 800 } },
+            "color": { "value": "#8b5cf6" },
+            "shape": { "type": "circle" },
+            "opacity": { "value": 0.5, "random": false },
+            "size": { "value": 3, "random": true },
+            "line_linked": { "enable": true, "distance": 150, "color": "#6366f1", "opacity": 0.4, "width": 1 },
+            "move": { "enable": true, "speed": 2, "direction": "none", "random": false, "straight": false, "out_mode": "out", "bounce": false }
+        },
+        "interactivity": {
+            "detect_on": "canvas",
+            "events": { "onhover": { "enable": true, "mode": "repulse" }, "onclick": { "enable": true, "mode": "push" }, "resize": true },
+            "modes": { "repulse": { "distance": 100, "duration": 0.4 }, "push": { "particles_nb": 4 } }
+        },
+        "retina_detect": true
+    });
+});
+</script>
+<style>
+.home-layout {
+    position: relative;
+    min-height: calc(100vh - 80px); /* Adjust based on navbar height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+#particles-js {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 0;
+}
+.hero-section {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 4rem;
+    border-radius: 20px;
+    max-width: 800px;
+    animation: fadeIn 1s ease-out;
+}
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #a78bfa, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+}
+.hero-subtitle {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    margin-bottom: 2.5rem;
+}
+.btn-large {
+    font-size: 1.2rem;
+    padding: 1rem 2.5rem;
+}
+</style>
+{% endblock %}

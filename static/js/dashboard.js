@@ -1,18 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Alert Dismissal (for flash messages)
-    setTimeout(() => {
-        const alerts = document.querySelectorAll('.alert');
-        alerts.forEach(alert => {
-            alert.style.opacity = '0';
-            setTimeout(() => alert.remove(), 300);
-        });
-    }, 5000);
-
-    // Only run dashboard logic if we are on the dashboard page
     const subscriptionsList = document.getElementById('subscriptionsList');
     if (subscriptionsList) {
         initDashboard();
-        initChatWidget();
     }
 });
 
@@ -20,7 +9,10 @@ let currentBudget = 0;
 let costChartInstance = null;
 
 function initDashboard() {
-    fetchBudget().then(() => fetchSubscriptions());
+    window.showLoader();
+    fetchBudget().then(() => fetchSubscriptions()).finally(() => {
+        window.hideLoader();
+    });
 
     const addToolForm = document.getElementById('addToolForm');
     if (addToolForm) {
@@ -50,7 +42,8 @@ async function fetchBudget() {
         if (response.ok) {
             const data = await response.json();
             currentBudget = data.budget || 0;
-            document.getElementById('monthlyBudget').value = currentBudget || '';
+            const mb = document.getElementById('monthlyBudget');
+            if(mb) mb.value = currentBudget || '';
         }
     } catch(e) { console.error(e); }
 }
@@ -72,14 +65,18 @@ async function saveBudget() {
             fetchSubscriptions();
             btn.textContent = 'Saved!';
             btn.classList.replace('btn-secondary', 'btn-primary');
+            if(window.showToast) window.showToast("Budget saved successfully!", "success");
             setTimeout(() => {
                 btn.textContent = 'Save Budget';
                 btn.classList.replace('btn-primary', 'btn-secondary');
             }, 2000);
+        } else {
+            if(window.showToast) window.showToast("Failed to save budget", "error");
         }
     } catch(e) {
         console.error(e);
         btn.textContent = 'Save Budget';
+        if(window.showToast) window.showToast("Network error saving budget", "error");
     }
 }
 
@@ -98,6 +95,8 @@ async function fetchSubscriptions() {
 
 function renderSubscriptions(tools) {
     const list = document.getElementById('subscriptionsList');
+    if(!list) return;
+    
     list.innerHTML = '';
 
     if (tools.length === 0) {
@@ -136,6 +135,20 @@ function renderSubscriptions(tools) {
     });
 }
 
+// Animate numbers counting up
+function animateValue(obj, start, end, duration) {
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        obj.innerHTML = '₹' + Math.floor(progress * (end - start) + start).toLocaleString();
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+
 function calculateStats(tools) {
     let monthly = 0;
     let yearly = 0;
@@ -147,26 +160,31 @@ function calculateStats(tools) {
 
     const potentialSavings = (monthly * 12) - yearly;
 
-    document.getElementById('totalMonthly').textContent = `₹${monthly.toLocaleString()}`;
-    document.getElementById('totalYearly').textContent = `₹${yearly.toLocaleString()}`;
+    const totalMonthlyEl = document.getElementById('totalMonthly');
+    const totalYearlyEl = document.getElementById('totalYearly');
+    if(totalMonthlyEl) animateValue(totalMonthlyEl, 0, monthly, 1000);
+    if(totalYearlyEl) animateValue(totalYearlyEl, 0, yearly, 1000);
     
     const savingsEl = document.getElementById('totalSavings');
-    savingsEl.textContent = `₹${Math.max(0, potentialSavings).toLocaleString()}`;
-    
-    if (potentialSavings > 0) {
-        savingsEl.className = 'amount savings-positive';
-    } else {
-        savingsEl.className = 'amount savings-negative';
+    if(savingsEl) {
+        animateValue(savingsEl, 0, Math.max(0, potentialSavings), 1000);
+        if (potentialSavings > 0) {
+            savingsEl.className = 'amount savings-positive';
+        } else {
+            savingsEl.className = 'amount savings-negative';
+        }
     }
 
     // Budget calculation
     const budgetRemaining = currentBudget - monthly;
     const budgetEl = document.getElementById('budgetRemaining');
-    budgetEl.textContent = `₹${budgetRemaining.toLocaleString()}`;
-    if (budgetRemaining < 0) {
-        budgetEl.className = 'amount savings-negative';
-    } else {
-        budgetEl.className = 'amount savings-positive';
+    if(budgetEl) {
+        animateValue(budgetEl, 0, budgetRemaining, 1000);
+        if (budgetRemaining < 0) {
+            budgetEl.className = 'amount savings-negative';
+        } else {
+            budgetEl.className = 'amount savings-positive';
+        }
     }
 
     // Update Chart
@@ -186,6 +204,8 @@ function renderChart(tools) {
     }
 
     Chart.defaults.color = '#94a3b8';
+    Chart.defaults.font.family = 'Inter';
+    
     costChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -194,28 +214,32 @@ function renderChart(tools) {
                 {
                     label: 'Cost (Paid Monthly)',
                     data: monthlyCosts,
-                    backgroundColor: 'rgba(59, 130, 246, 0.7)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
+                    backgroundColor: 'rgba(139, 92, 246, 0.7)', // Purple gradient vibe
+                    borderColor: 'rgba(139, 92, 246, 1)',
                     borderWidth: 1,
-                    borderRadius: 4
+                    borderRadius: 6
                 },
                 {
                     label: 'Avg Monthly Cost (Paid Yearly)',
                     data: yearlyCosts,
-                    backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.7)', // Emerald
                     borderColor: 'rgba(16, 185, 129, 1)',
                     borderWidth: 1,
-                    borderRadius: 4
+                    borderRadius: 6
                 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+                duration: 1500,
+                easing: 'easeOutQuart'
+            },
             scales: {
                 y: {
                     beginAtZero: true,
-                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
                     ticks: { callback: function(value) { return '₹' + value; } }
                 },
                 x: {
@@ -223,8 +247,17 @@ function renderChart(tools) {
                 }
             },
             plugins: {
-                legend: { position: 'top', labels: { color: '#f8fafc' } },
-                title: { display: true, text: 'Cost Comparison per Tool (Monthly Eqv.)', color: '#f8fafc', font: { size: 16 } }
+                legend: { position: 'top', labels: { color: '#f8fafc', font: { size: 13 } } },
+                title: { display: true, text: 'Cost Comparison per Tool (Monthly Eqv.)', color: '#f8fafc', font: { size: 16, weight: 'bold' } },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleFont: { size: 14 },
+                    bodyFont: { size: 13 },
+                    padding: 12,
+                    cornerRadius: 8,
+                    borderColor: 'rgba(139, 92, 246, 0.3)',
+                    borderWidth: 1
+                }
             }
         }
     });
@@ -253,19 +286,20 @@ async function handleAddTool(e) {
         if (response.ok) {
             e.target.reset();
             fetchSubscriptions(); // Refresh list
+            if(window.showToast) window.showToast("Subscription added successfully!", "success");
         } else {
             const err = await response.json();
-            alert("Error: " + err.error);
+            if(window.showToast) window.showToast("Error: " + err.error, "error");
         }
     } catch (error) {
-        alert("Network Error");
+        if(window.showToast) window.showToast("Network Error", "error");
     } finally {
         submitBtn.innerHTML = '<i class="fa-solid fa-save"></i> Save Subscription';
         submitBtn.disabled = false;
     }
 }
 
-async function deleteTool(id) {
+window.deleteTool = async function(id) {
     if (!confirm("Are you sure you want to remove this subscription?")) return;
 
     try {
@@ -277,90 +311,10 @@ async function deleteTool(id) {
 
         if (response.ok) {
             fetchSubscriptions();
+            if(window.showToast) window.showToast("Subscription deleted.", "success");
         }
     } catch (error) {
         console.error("Error deleting tool:", error);
+        if(window.showToast) window.showToast("Error deleting subscription", "error");
     }
-}
-
-/* Chat Widget Logic */
-function initChatWidget() {
-    const chatWidget = document.getElementById('chatWidget');
-    const chatHeader = document.getElementById('chatHeader');
-    const chatToggleIcon = document.getElementById('chatToggleIcon');
-    const chatInput = document.getElementById('chatInput');
-    const sendChatBtn = document.getElementById('sendChatBtn');
-    
-    // Toggle Chat
-    chatHeader.addEventListener('click', () => {
-        chatWidget.classList.toggle('collapsed');
-        if (chatWidget.classList.contains('collapsed')) {
-            chatToggleIcon.classList.replace('fa-chevron-down', 'fa-chevron-up');
-        } else {
-            chatToggleIcon.classList.replace('fa-chevron-up', 'fa-chevron-down');
-        }
-    });
-
-    // Start collapsed
-    chatWidget.classList.add('collapsed');
-
-    // Send Message
-    const sendMessage = async () => {
-        const message = chatInput.value.trim();
-        if (!message) return;
-
-        appendMessage("You", message, "user-message");
-        chatInput.value = '';
-        
-        // Show loading
-        const loadingId = "loading-" + Date.now();
-        appendMessage("AI", "<i class='fa-solid fa-ellipsis fa-fade'></i>", "ai-message", loadingId);
-
-        try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: message })
-            });
-
-            const data = await response.json();
-            document.getElementById(loadingId).remove(); // Remove loading
-            
-            if (response.ok) {
-                appendMessage("AI", formatAIResponse(data.response), "ai-message");
-            } else {
-                appendMessage("System Error", data.error, "ai-message");
-            }
-        } catch (err) {
-            document.getElementById(loadingId).remove();
-            appendMessage("Error", "Failed to connect to the server.", "ai-message");
-        }
-    };
-
-    sendChatBtn.addEventListener('click', sendMessage);
-    chatInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();
-    });
-}
-
-function appendMessage(sender, text, className, id = null) {
-    const chatMessages = document.getElementById('chatMessages');
-    const msgDiv = document.createElement('div');
-    msgDiv.className = `message ${className}`;
-    if (id) msgDiv.id = id;
-    
-    // Basic markdown formatting for bold and line breaks
-    let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    formattedText = formattedText.replace(/\n/g, '<br>');
-    
-    msgDiv.innerHTML = `<p>${formattedText}</p>`;
-    chatMessages.appendChild(msgDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-function formatAIResponse(text) {
-    // Basic bold and list item formatting
-    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-               .replace(/\n\* /g, '<br>• ')
-               .replace(/\n- /g, '<br>• ');
 }
