@@ -18,7 +18,10 @@
             </div>
             <div class="input-group">
                 <label for="password"><i class="fa-solid fa-lock"></i> Password</label>
-                <input type="password" id="password" name="password" required placeholder="••••••••">
+                <div style="position: relative;">
+                    <input type="password" id="password" name="password" required placeholder="••••••••" style="width: 100%; padding-right: 40px;">
+                    <i class="fa-regular fa-eye" id="togglePassword" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-secondary);"></i>
+                </div>
             </div>
             <button type="submit" class="btn btn-primary btn-block">Sign In <i class="fa-solid fa-arrow-right"></i></button>
         </form>
@@ -28,4 +31,19 @@
         </div>
     </div>
 </div>
+
+<script>
+    const togglePassword = document.querySelector('#togglePassword');
+    const password = document.querySelector('#password');
+
+    togglePassword.addEventListener('click', function (e) {
+        // toggle the type attribute
+        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+        password.setAttribute('type', type);
+        // toggle the eye / eye slash icon
+        this.classList.toggle('fa-eye');
+        this.classList.toggle('fa-eye-slash');
+    });
+</script>
+
 {% endblock %}
