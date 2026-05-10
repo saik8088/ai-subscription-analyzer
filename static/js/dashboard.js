@@ -48,14 +48,12 @@ function downloadPDFReport() {
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
     btn.disabled = true;
 
-    // Fetch latest data to build the report
     Promise.all([fetch('/api/tools'), fetch('/api/budget')])
         .then(async ([toolsRes, budgetRes]) => {
             const tools = await toolsRes.json();
             const budgetData = await budgetRes.json();
             const budget = budgetData.budget || 0;
 
-            // Compute stats
             let totalMonthly = 0, totalYearly = 0;
             tools.forEach(t => { totalMonthly += t.monthly_cost; totalYearly += t.yearly_cost; });
             const budgetRemaining = budget - totalMonthly;
@@ -64,158 +62,166 @@ function downloadPDFReport() {
             let expenseLevel = 'N/A', expenseColor = '#64748b';
             if (budget > 0) {
                 const ratio = totalMonthly / budget;
-                if (ratio > 0.7)      { expenseLevel = 'High';   expenseColor = '#ef4444'; }
-                else if (ratio > 0.3) { expenseLevel = 'Medium'; expenseColor = '#f59e0b'; }
-                else                  { expenseLevel = 'Low';    expenseColor = '#10b981'; }
+                if (ratio > 0.7)       { expenseLevel = 'High';   expenseColor = '#ef4444'; }
+                else if (ratio > 0.3)  { expenseLevel = 'Medium'; expenseColor = '#f59e0b'; }
+                else                   { expenseLevel = 'Low';    expenseColor = '#10b981'; }
             }
 
             const now = new Date();
             const dateStr = now.toLocaleDateString('en-IN', { year:'numeric', month:'long', day:'numeric' });
             const timeStr = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
 
-            // Build subscription table rows
+            // Table rows for subscriptions
             const tableRows = tools.length === 0
-                ? `<tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:20px;">No subscriptions added yet.</td></tr>`
+                ? `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px;">No subscriptions added yet.</td></tr>`
                 : tools.map((t, i) => {
                     const savings = (t.monthly_cost * 12) - t.yearly_cost;
-                    const savColor = savings > 0 ? '#10b981' : '#ef4444';
-                    return `
-                    <tr style="background:${i % 2 === 0 ? '#f8fafc' : '#ffffff'};">
-                        <td style="padding:10px 14px; font-weight:600; color:#1e293b;">${t.tool_name}</td>
-                        <td style="padding:10px 14px; text-align:right;">₹${t.monthly_cost.toLocaleString('en-IN')}</td>
-                        <td style="padding:10px 14px; text-align:right;">₹${t.yearly_cost.toLocaleString('en-IN')}</td>
-                        <td style="padding:10px 14px; color:${savColor}; text-align:right; font-weight:600;">₹${Math.max(0, savings).toLocaleString('en-IN')}</td>
-                        <td style="padding:10px 14px; font-size:12px; color:#64748b; max-width:180px;">${t.features}</td>
+                    return `<tr style="background:${i % 2 === 0 ? '#f8fafc' : '#ffffff'};">
+                        <td style="padding:9px 12px;font-weight:600;color:#1e293b;border-bottom:1px solid #e2e8f0;">${t.tool_name}</td>
+                        <td style="padding:9px 12px;text-align:right;border-bottom:1px solid #e2e8f0;">&#8377;${t.monthly_cost.toLocaleString('en-IN')}</td>
+                        <td style="padding:9px 12px;text-align:right;border-bottom:1px solid #e2e8f0;">&#8377;${t.yearly_cost.toLocaleString('en-IN')}</td>
+                        <td style="padding:9px 12px;text-align:right;border-bottom:1px solid #e2e8f0;font-weight:700;color:${savings > 0 ? '#10b981' : '#ef4444'};">&#8377;${Math.max(0,savings).toLocaleString('en-IN')}</td>
+                        <td style="padding:9px 12px;font-size:11px;color:#64748b;border-bottom:1px solid #e2e8f0;">${t.features}</td>
                     </tr>`;
                 }).join('');
 
-            // Build the full report HTML
+            // Summary cards using table layout (html2canvas compatible)
+            const cards = [
+                { label:'Total Monthly',    value:'&#8377;'+totalMonthly.toLocaleString('en-IN'), color:'#7c3aed' },
+                { label:'Total Yearly',     value:'&#8377;'+totalYearly.toLocaleString('en-IN'),  color:'#3b82f6' },
+                { label:'Expense Level',    value:expenseLevel,                                    color:expenseColor },
+                { label:'Budget Remaining', value: budget > 0 ? '&#8377;'+Math.abs(budgetRemaining).toLocaleString('en-IN')+(budgetRemaining<0?' Over':'') : 'Not Set',
+                  color: budgetRemaining < 0 ? '#ef4444' : '#10b981' }
+            ];
+
+            const cardCells = cards.map(c => `
+                <td style="width:25%;padding:6px;">
+                    <div style="border-top:4px solid ${c.color};background:#f8fafc;border:1px solid #e2e8f0;border-top:4px solid ${c.color};border-radius:8px;padding:14px;text-align:center;">
+                        <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">${c.label}</div>
+                        <div style="font-size:18px;font-weight:800;color:${c.color};">${c.value}</div>
+                    </div>
+                </td>`).join('');
+
             const reportHTML = `
-            <div style="font-family: 'Helvetica Neue', Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; color: #1e293b; background: #fff;">
+<div id="pdf-report-inner" style="font-family:Arial,Helvetica,sans-serif;padding:36px;background:#ffffff;color:#1e293b;width:750px;">
 
-                <!-- HEADER -->
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-                    <div>
-                        <h1 style="margin:0; font-size:28px; font-weight:800; color:#7c3aed; letter-spacing:-0.5px;">AI SUBSCRIPTION REPORT</h1>
-                        <p style="margin:4px 0 0; font-size:13px; color:#64748b;">Official Cost & Expense Analysis</p>
-                    </div>
-                    <div style="text-align:right; font-size:12px; color:#64748b; line-height:1.8;">
-                        <div><strong>Date:</strong> ${dateStr}</div>
-                        <div><strong>Time:</strong> ${timeStr}</div>
-                    </div>
+    <!-- HEADER -->
+    <table style="width:100%;margin-bottom:6px;" cellpadding="0" cellspacing="0">
+        <tr>
+            <td>
+                <div style="font-size:26px;font-weight:800;color:#7c3aed;letter-spacing:-0.5px;">AI SUBSCRIPTION REPORT</div>
+                <div style="font-size:12px;color:#64748b;margin-top:3px;">Official Cost &amp; Expense Analysis</div>
+            </td>
+            <td style="text-align:right;font-size:12px;color:#64748b;line-height:2;">
+                <div><strong>Date:</strong> ${dateStr}</div>
+                <div><strong>Time:</strong> ${timeStr}</div>
+            </td>
+        </tr>
+    </table>
+    <div style="height:3px;background:#7c3aed;margin-bottom:24px;"></div>
+
+    <!-- SUMMARY CARDS -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;" cellpadding="0" cellspacing="0">
+        <tr>${cardCells}</tr>
+    </table>
+
+    ${potentialSavings > 0 ? `
+    <!-- SAVINGS TIP -->
+    <div style="background:#f0fdf4;border-left:5px solid #10b981;border-radius:8px;padding:14px 18px;margin-bottom:24px;">
+        <div style="font-weight:800;color:#15803d;font-size:14px;margin-bottom:4px;">&#128161; Potential Annual Savings</div>
+        <div style="color:#166534;font-size:12px;">You could save <strong>&#8377;${potentialSavings.toLocaleString('en-IN')}/year</strong> by switching to yearly billing plans across all subscriptions.</div>
+    </div>` : ''}
+
+    <!-- SUBSCRIPTIONS TABLE -->
+    <div style="font-size:14px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #e2e8f0;">
+        Subscription Details &mdash; ${tools.length} Tool${tools.length !== 1 ? 's' : ''}
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px;">
+        <thead>
+            <tr style="background:#7c3aed;color:#ffffff;">
+                <th style="padding:10px 12px;text-align:left;">Tool Name</th>
+                <th style="padding:10px 12px;text-align:right;">Monthly Cost</th>
+                <th style="padding:10px 12px;text-align:right;">Yearly Cost</th>
+                <th style="padding:10px 12px;text-align:right;">Yearly Savings</th>
+                <th style="padding:10px 12px;text-align:left;">Key Features</th>
+            </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+        <tfoot>
+            <tr style="background:#1e293b;color:#ffffff;font-weight:700;">
+                <td style="padding:10px 12px;">TOTAL</td>
+                <td style="padding:10px 12px;text-align:right;">&#8377;${totalMonthly.toLocaleString('en-IN')}</td>
+                <td style="padding:10px 12px;text-align:right;">&#8377;${totalYearly.toLocaleString('en-IN')}</td>
+                <td style="padding:10px 12px;text-align:right;color:#10b981;">&#8377;${Math.max(0,potentialSavings).toLocaleString('en-IN')}</td>
+                <td style="padding:10px 12px;"></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- EXPENSE ANALYSIS -->
+    <div style="font-size:14px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #e2e8f0;">
+        Expense Analysis
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+        <tr>
+            <td style="width:50%;padding:6px 6px 6px 0;">
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;">
+                    <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px;">Monthly Budget Set</div>
+                    <div style="font-size:16px;font-weight:800;color:#1e293b;">${budget > 0 ? '&#8377;'+budget.toLocaleString('en-IN') : 'Not Set'}</div>
                 </div>
-                <hr style="border:none; border-top:3px solid #7c3aed; margin-bottom:28px;">
-
-                <!-- SUMMARY CARDS -->
-                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px;">
-                    ${[
-                        { label:'Total Monthly', value:'₹'+totalMonthly.toLocaleString('en-IN'), color:'#7c3aed' },
-                        { label:'Total Yearly',  value:'₹'+totalYearly.toLocaleString('en-IN'),  color:'#3b82f6' },
-                        { label:'Expense Level', value:expenseLevel, color:expenseColor },
-                        { label:'Budget Remaining', value: budget > 0 ? '₹'+budgetRemaining.toLocaleString('en-IN') : 'No Budget', color: budgetRemaining < 0 ? '#ef4444' : '#10b981' }
-                    ].map(c => `
-                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-top:4px solid ${c.color}; border-radius:10px; padding:16px; text-align:center;">
-                            <div style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">${c.label}</div>
-                            <div style="font-size:20px; font-weight:800; color:${c.color};">${c.value}</div>
-                        </div>`).join('')}
+            </td>
+            <td style="width:50%;padding:6px 0 6px 6px;">
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;">
+                    <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px;">Budget Used</div>
+                    <div style="font-size:16px;font-weight:800;color:${budgetRemaining < 0 ? '#ef4444' : '#10b981'};">${budget > 0 ? Math.round((totalMonthly/budget)*100)+'%' : 'N/A'}</div>
                 </div>
+            </td>
+        </tr>
+    </table>
 
-                <!-- SAVINGS HIGHLIGHT -->
-                ${potentialSavings > 0 ? `
-                <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border:1px solid #bbf7d0; border-left:5px solid #10b981; border-radius:10px; padding:16px 20px; margin-bottom:28px; display:flex; align-items:center; gap:16px;">
-                    <div style="font-size:32px;">💡</div>
-                    <div>
-                        <div style="font-weight:800; color:#15803d; font-size:15px;">Potential Annual Savings</div>
-                        <div style="color:#166534; font-size:13px; margin-top:4px;">You could save <strong>₹${potentialSavings.toLocaleString('en-IN')}/year</strong> by switching all subscriptions to yearly billing plans.</div>
-                    </div>
-                </div>` : ''}
+    <!-- FOOTER -->
+    <table style="width:100%;border-top:1px solid #e2e8f0;padding-top:12px;margin-top:8px;">
+        <tr>
+            <td style="font-size:10px;color:#94a3b8;">AI Subscription Cost Analyzer</td>
+            <td style="font-size:10px;color:#94a3b8;text-align:right;">Generated on ${dateStr} at ${timeStr}</td>
+        </tr>
+    </table>
 
-                <!-- SUBSCRIPTIONS TABLE -->
-                <div style="margin-bottom:32px;">
-                    <h2 style="font-size:16px; font-weight:800; color:#7c3aed; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:14px; border-bottom:2px solid #e2e8f0; padding-bottom:8px;">
-                        Subscription Details (${tools.length} tool${tools.length !== 1 ? 's' : ''})
-                    </h2>
-                    <table style="width:100%; border-collapse:collapse; font-size:13px;">
-                        <thead>
-                            <tr style="background:#7c3aed; color:#fff;">
-                                <th style="padding:11px 14px; text-align:left; border-radius:6px 0 0 0;">Tool Name</th>
-                                <th style="padding:11px 14px; text-align:right;">Monthly Cost</th>
-                                <th style="padding:11px 14px; text-align:right;">Yearly Cost</th>
-                                <th style="padding:11px 14px; text-align:right;">Yearly Savings</th>
-                                <th style="padding:11px 14px; text-align:left; border-radius:0 6px 0 0;">Key Features</th>
-                            </tr>
-                        </thead>
-                        <tbody>${tableRows}</tbody>
-                        <tfoot>
-                            <tr style="background:#1e293b; color:#fff; font-weight:700;">
-                                <td style="padding:11px 14px;">TOTAL</td>
-                                <td style="padding:11px 14px; text-align:right;">₹${totalMonthly.toLocaleString('en-IN')}</td>
-                                <td style="padding:11px 14px; text-align:right;">₹${totalYearly.toLocaleString('en-IN')}</td>
-                                <td style="padding:11px 14px; text-align:right; color:#10b981;">₹${Math.max(0, potentialSavings).toLocaleString('en-IN')}</td>
-                                <td style="padding:11px 14px;"></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
+</div>`;
 
-                <!-- EXPENSE ANALYSIS -->
-                <div style="margin-bottom:28px;">
-                    <h2 style="font-size:16px; font-weight:800; color:#7c3aed; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:14px; border-bottom:2px solid #e2e8f0; padding-bottom:8px;">Expense Analysis</h2>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px;">
-                            <div style="font-size:12px; color:#64748b; font-weight:600; text-transform:uppercase; margin-bottom:6px;">Monthly Budget</div>
-                            <div style="font-size:18px; font-weight:800; color:#1e293b;">${budget > 0 ? '₹'+budget.toLocaleString('en-IN') : 'Not Set'}</div>
-                        </div>
-                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px;">
-                            <div style="font-size:12px; color:#64748b; font-weight:600; text-transform:uppercase; margin-bottom:6px;">Monthly Spend vs Budget</div>
-                            <div style="font-size:18px; font-weight:800; color:${budgetRemaining < 0 ? '#ef4444' : '#10b981'};">
-                                ${budget > 0 ? Math.round((totalMonthly / budget) * 100) + '% used' : 'N/A'}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- FOOTER -->
-                <div style="border-top:1px solid #e2e8f0; margin-top:20px; padding-top:16px; display:flex; justify-content:space-between; font-size:11px; color:#94a3b8;">
-                    <span>AI Subscription Cost Analyzer</span>
-                    <span>Generated on ${dateStr} at ${timeStr}</span>
-                </div>
-            </div>`;
-
-            // Generate PDF from the report HTML
-            const container = document.createElement('div');
-            container.innerHTML = reportHTML;
-            container.style.position = 'absolute';
-            container.style.left = '-9999px';
-            document.body.appendChild(container);
+            // Create a visible but off-screen iframe to render reliably
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = 'position:fixed;top:0;left:0;width:800px;z-index:-9999;background:#fff;';
+            wrapper.innerHTML = reportHTML;
+            document.body.appendChild(wrapper);
 
             const opt = {
-                margin: [8, 8, 8, 8],
+                margin: 8,
                 filename: `AI_Subscription_Report_${now.toISOString().slice(0,10)}.pdf`,
-                image: { type: 'jpeg', quality: 0.99 },
-                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            html2pdf().set(opt).from(container).save()
+            html2pdf().set(opt).from(wrapper.firstElementChild).save()
                 .then(() => {
-                    document.body.removeChild(container);
+                    document.body.removeChild(wrapper);
                     btn.innerHTML = originalText;
                     btn.disabled = false;
-                    if(window.showToast) window.showToast("Report downloaded successfully!", "success");
+                    if(window.showToast) window.showToast('Report downloaded successfully!', 'success');
                 }).catch(err => {
                     console.error(err);
-                    document.body.removeChild(container);
+                    document.body.removeChild(wrapper);
                     btn.innerHTML = originalText;
                     btn.disabled = false;
-                    if(window.showToast) window.showToast("Failed to generate report", "error");
+                    if(window.showToast) window.showToast('Failed to generate report', 'error');
                 });
         })
         .catch(err => {
             console.error(err);
             btn.innerHTML = originalText;
             btn.disabled = false;
-            if(window.showToast) window.showToast("Failed to fetch data for report", "error");
+            if(window.showToast) window.showToast('Failed to fetch report data', 'error');
         });
 }
 
