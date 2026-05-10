@@ -34,6 +34,45 @@ function initDashboard() {
     if (saveBudgetBtn) {
         saveBudgetBtn.addEventListener('click', saveBudget);
     }
+
+    // Download Report Logic
+    const downloadReportBtn = document.getElementById('downloadReportBtn');
+    if (downloadReportBtn) {
+        downloadReportBtn.addEventListener('click', downloadPDFReport);
+    }
+}
+
+function downloadPDFReport() {
+    const reportContent = document.getElementById('reportContent');
+    if (!reportContent) return;
+
+    // Temporarily change styling for better PDF output if needed
+    // (html2pdf handles most things fine)
+    
+    const opt = {
+        margin:       10,
+        filename:     'AI_Subscription_Report.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // New Promise-based usage:
+    const btn = document.getElementById('downloadReportBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+    btn.disabled = true;
+
+    html2pdf().set(opt).from(reportContent).save().then(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        if(window.showToast) window.showToast("Report downloaded successfully!", "success");
+    }).catch(err => {
+        console.error(err);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        if(window.showToast) window.showToast("Failed to generate report", "error");
+    });
 }
 
 async function fetchBudget() {

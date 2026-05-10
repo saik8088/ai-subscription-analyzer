@@ -2,6 +2,7 @@
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -33,13 +34,16 @@
     </aside>
 
     <!-- Main Content Area -->
-    <section class="main-content">
+    <section class="main-content" id="reportContent">
         <!-- Settings Bar -->
         <div class="settings-bar glass-panel">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;" data-html2pdf-ignore="true">
+                <button id="downloadReportBtn" class="btn btn-primary btn-sm"><i class="fa-solid fa-file-pdf"></i> Download PDF Report</button>
+            </div>
             <div class="input-group inline-group" style="margin-bottom:0;">
                 <label for="monthlyBudget"><i class="fa-solid fa-piggy-bank"></i> Monthly Budget (₹):</label>
                 <input type="number" id="monthlyBudget" placeholder="Enter your total monthly budget..." min="0">
-                <button id="saveBudgetBtn" class="btn btn-secondary btn-sm">Save Budget</button>
+                <button id="saveBudgetBtn" class="btn btn-secondary btn-sm" data-html2pdf-ignore="true">Save Budget</button>
             </div>
         </div>
 
